@@ -1,0 +1,2 @@
+dependecy used : openai
+cmd: npm install openai 

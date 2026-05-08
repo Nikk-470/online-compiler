@@ -1,0 +1,10 @@
+created a run button to run the codeno dependency use simple creation of a button
+const RunButton =({run})=>
+{
+    return(
+        <button className='px-10,py-5' onCLick ={run}
+        
+    )
+
+    
+}

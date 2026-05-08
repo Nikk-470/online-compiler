@@ -1,0 +1,63 @@
+here me write our route ande express thing middleware.
+dependency used are :
+1. express: we know about this act as a middleware framework
+     cmd: npm i express
+
+2. filesystem : use to mange files like creating files by cmd
+    this is built in in node.
+
+3. cors:  it is a middle-ware library
+    CORS = permission to allow frontend to access backend.
+    CORS is a security mechanism that allows controlled access to resources from different origins. I used it to enable communication between my frontend and backend running on different ports.
+
+    Frontend → http://localhost:5173
+    Backend  → http://localhost:5000
+    look the ports of frontedn and backend are different so if will try to run without  
+    cors the server will not connect to fronend due to differ ports
+
+    but cors can allow to pair even having differ ports.
+     
+4. child_process : inbuilt module in node js 
+child_process is a built-in Node.js module used to execute system-level commands by creating a new process.
+
+--------------------------------------------------------------------------------------
+mow lets write code
+app.js
+
+const express = require ('express')
+const app = expres();
+const cors = require('cors')
+const fs = require ("fs")
+const {exec}= require("child_process)
+
+app.use(cors())
+app.use (express.json()) 
+//express.json() is a middleware used to parse incoming JSON request bodies so that the data can be accessed through req.body.
+
+app.post('/run' ,(req,res)=>
+{
+    const{code,language}=req.body
+    if(language==="cpp)
+    {
+        fs.writeFileSync("code.cpp",code); // writeFileSync use to create a file : 
+                                              syntax :(writeFileSync("file_name",file));
+        exec("g++ code.cpp -o && code.exe,(error,stdout,stderr)=>{
+            if(error) return res.send(err.message)
+            if(stderr) return res.send(stderr)
+            res.send(stdout)
+        });
+
+        // the error stdout stderr are specefic parameter of execute.
+
+        error -> tells system error
+        stderr -> program error
+        stdout->output.
+
+        syntax of exex: exec("command to be execute",callback())
+
+        similar for pyhton
+
+        remember the execution command of python ("pthoncode.py")
+
+    }
+})

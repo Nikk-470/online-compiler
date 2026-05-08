@@ -1,0 +1,18 @@
+so monaco editor is the box where we write the code
+
+We installed it using the cmd
+npm install @monaco-editor/react
+
+// lets write code by own
+ dependency  : npm install @momnaco-editor/react
+
+Editor.jsx code:
+import Editor from '@Monaco-editor/react'
+
+const CodeEditor=({code,setCode}=>
+{
+    <Editor
+    height="300px" defaultLanguage="Cpp" value="{code} onChange={(value)=>{setValue(Value)}}
+})
+
+remember the height value defaultLanguage are the props of the <Editor>

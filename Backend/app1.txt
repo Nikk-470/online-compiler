@@ -1,0 +1,33 @@
+lets write once again 
+// dependency
+const express = require("express')
+const app = express()
+const fs= require("fs")
+const cors= require("cors")
+const {exec} = require("child_process)
+
+// setting parser
+app.use(express.json())
+app.use(cors())
+
+// route
+
+app.post('/run'(req,res)=>
+{
+    const{code,language}= req.body;
+    if(language==="cpp"
+    {
+        fs.writeFileSync("code.cpp",code)
+        exec("g++ code.cpp -o code && ./a.exe",(error,stdout,stderr)=>
+        {
+            if(error) res.send(error.message)
+            if(stdout) res.send(stdout)
+            res.send(stderr)
+        })
+    })
+})
+
+---------------------------------------------------------------------------------------
+once again
+// dependency
+

@@ -1,0 +1,19 @@
+what we have done 
+p-1 install axios for api calling (cmd: npm i axios)
+
+p-2 in the api file we import it for api calling 
+
+p-3 axios is used to talk to backend(Frontend → API (this file) → Backend)
+
+p-4 we have used axios.post (it means we want to send the data to server)
+
+p-5 syntax of axios "axios.post(url, data)" (post/get/put/delete)
+
+p-6 axios.post will send the data to the specefic route 
+    which in our code is:  axios.post("http://localhost:5000/run") 
+
+p-7 so what we have to send to backend : we have to send the code as our data.
+
+p-8 remember the route is in backend which will be of kind ('/run')
+
+p-9
