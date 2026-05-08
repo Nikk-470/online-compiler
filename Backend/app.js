@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
-const cors = require("cors");
+// const cors = require("cors"); // Commented out: Nginx handles CORS for DuckDNS
 const { exec } = require("child_process");
 const rateLimit = require("express-rate-limit"); 
 const fs = require("fs");
@@ -10,7 +10,7 @@ const { getSuggestion } = require("./AI/aiService");
 
 const app = express();
 
-app.use(cors());
+// app.use(cors()); // Commented out to avoid duplicate header errors with Nginx
 app.use(express.json());
 
 /* ================= RATE LIMITING (SECURITY) ================= */
@@ -40,22 +40,23 @@ app.post("/run", runLimiter, (req, res) => {
     return res.status(400).send("Code and language required");
   }
 
-  // 🛡️ THE FIX: Separate Internal Container Path from External Host Path
-  const internalWorkDir = process.cwd(); // Where Node writes internally ("/app")
-  const externalHostDir = process.env.HOST_PROJECT_PATH || internalWorkDir; // Where Windows Docker mounts from
+  const internalWorkDir = process.cwd(); 
+  const externalHostDir = process.env.HOST_PROJECT_PATH || internalWorkDir;
+
+  // 🛡️ Essential Security: No Network, Memory/CPU limits
+  const securityFlags = `--rm --network none --memory="128m" --cpus=".5" --pids-limit 10`;
 
   // ================= PYTHON =================
   if (language === "python") {
     const fileName = `code_${Date.now()}.py`;
     const filePath = path.join(internalWorkDir, fileName);
-
     fs.writeFileSync(filePath, code);
 
-    const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app python:3.10 python ${fileName}`;
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
+    const command = `docker run ${securityFlags} -v "${externalHostDir}:/app" -w /app python:3.10 sh -c "timeout 5s python ${fileName}"`;
+    
+    exec(command, { timeout: 5500 }, (error, stdout, stderr) => {
       try { fs.unlinkSync(filePath); } catch {}
       if (error) return res.send(stderr || error.message);
-      if (stderr) return res.send(stderr);
       res.send(stdout || "No output");
     });
   }
@@ -63,69 +64,57 @@ app.post("/run", runLimiter, (req, res) => {
   // ================= C++ =================
   else if (language === "cpp") {
     const timestamp = Date.now();
-
     const fileName = `code_${timestamp}.cpp`;
     const exeName = `code_${timestamp}`;
-
     const filePath = path.join(internalWorkDir, fileName);
-
     fs.writeFileSync(filePath, code);
 
-    const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "g++ ${fileName} -o ${exeName} && ./${exeName}"`;
+    const command = `docker run ${securityFlags} -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "timeout 5s g++ ${fileName} -o ${exeName} && timeout 5s ./${exeName}"`;
 
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
+    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
       try {
         fs.unlinkSync(filePath);
         fs.unlinkSync(path.join(internalWorkDir, exeName));
       } catch {}
-
       if (error) return res.send(stderr || error.message);
-      if (stderr) return res.send(stderr);
-
       res.send(stdout || "No output");
     });
-}
+  }
+
   // ================= C =================
   else if (language === "c") {
     const timestamp = Date.now();
-
     const fileName = `code_${timestamp}.c`;
     const exeName = `code_${timestamp}`;
-
     const filePath = path.join(internalWorkDir, fileName);
-
     fs.writeFileSync(filePath, code);
 
-    const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "gcc ${fileName} -o ${exeName} && ./${exeName}"`;
+    const command = `docker run ${securityFlags} -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "timeout 5s gcc ${fileName} -o ${exeName} && timeout 5s ./${exeName}"`;
 
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
+    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
       try {
         fs.unlinkSync(filePath);
         fs.unlinkSync(path.join(internalWorkDir, exeName));
       } catch {}
-
       if (error) return res.send(stderr || error.message);
-      if (stderr) return res.send(stderr);
-
       res.send(stdout || "No output");
     });
-}
+  }
+
   // ================= JAVA =================
   else if (language === "java") {
     const fileName = "Main.java"; 
     const filePath = path.join(internalWorkDir, fileName);
-    
     fs.writeFileSync(filePath, code);
 
-    const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app eclipse-temurin:17-jdk sh -c "javac ${fileName} && java Main"`;
+    const command = `docker run ${securityFlags} -v "${externalHostDir}:/app" -w /app eclipse-temurin:17-jdk sh -c "timeout 10s javac ${fileName} && timeout 5s java Main"`;
 
-    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+    exec(command, { timeout: 15000 }, (error, stdout, stderr) => {
       try {
         fs.unlinkSync(filePath);
         fs.unlinkSync(path.join(internalWorkDir, "Main.class"));
       } catch {}
       if (error) return res.send(stderr || error.message);
-      if (stderr) return res.send(stderr);
       res.send(stdout || "No output");
     });
   }
@@ -137,22 +126,17 @@ app.post("/run", runLimiter, (req, res) => {
 
 /* ================= AI ROUTE (SMART) ================= */
 
-/* ================= AI ROUTE (SMART) ================= */
-
 app.post("/ai", aiLimiter, async (req, res) => {
   try {
     const { messages, code } = req.body;
     let finalMessages = [];
 
-    // 🛡️ THE FIX: Catch if the chat array was accidentally sent inside 'code'
     if (Array.isArray(code)) {
       finalMessages = code;
     } 
-    // Standard chat mode check
     else if (messages && Array.isArray(messages)) {
       finalMessages = messages;
     } 
-    // AI Suggestion mode (Single string of code)
     else if (code) {
       finalMessages = [
         {
