@@ -62,10 +62,13 @@ app.post("/run", runLimiter, (req, res) => {
 
   // ================= C++ =================
   else if (language === "cpp") {
-    const fileName = `code_${Date.now()}.cpp`;
-    const exeName = `code_${Date.now()}`;
+    const timestamp = Date.now();
+
+    const fileName = `code_${timestamp}.cpp`;
+    const exeName = `code_${timestamp}`;
+
     const filePath = path.join(internalWorkDir, fileName);
-    
+
     fs.writeFileSync(filePath, code);
 
     const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "g++ ${fileName} -o ${exeName} && ./${exeName}"`;
@@ -75,33 +78,38 @@ app.post("/run", runLimiter, (req, res) => {
         fs.unlinkSync(filePath);
         fs.unlinkSync(path.join(internalWorkDir, exeName));
       } catch {}
+
       if (error) return res.send(stderr || error.message);
       if (stderr) return res.send(stderr);
+
       res.send(stdout || "No output");
     });
-  }
-
+}
   // ================= C =================
   else if (language === "c") {
-    const fileName = `code_${Date.now()}.c`;
-    const exeName = `code_${Date.now()}`;
+    const timestamp = Date.now();
+
+    const fileName = `code_${timestamp}.c`;
+    const exeName = `code_${timestamp}`;
+
     const filePath = path.join(internalWorkDir, fileName);
-    
+
     fs.writeFileSync(filePath, code);
 
     const command = `docker run --rm --memory="128m" --cpus=".5" --pids-limit 10 -v "${externalHostDir}:/app" -w /app gcc:latest sh -c "gcc ${fileName} -o ${exeName} && ./${exeName}"`;
 
     exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
-      try { 
-        fs.unlinkSync(filePath); 
-        fs.unlinkSync(path.join(internalWorkDir, exeName)); 
+      try {
+        fs.unlinkSync(filePath);
+        fs.unlinkSync(path.join(internalWorkDir, exeName));
       } catch {}
+
       if (error) return res.send(stderr || error.message);
       if (stderr) return res.send(stderr);
+
       res.send(stdout || "No output");
     });
-  }
-
+}
   // ================= JAVA =================
   else if (language === "java") {
     const fileName = "Main.java"; 
