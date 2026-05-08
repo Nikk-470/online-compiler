@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 🆕 Added useEffect here
 import "./App.css";
 
 import CodeEditor from "./Components/Editor";
@@ -29,6 +29,24 @@ function App() {
 
   const activeFile = files[activeIndex] || files[0];
 
+  /* ================= SHORTCUT LOGIC ================= */
+  // 🆕 This block listens for Shift + Enter and clicks the Run button
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.shiftKey && e.key === "Enter") {
+        e.preventDefault(); // Stop a new line from being created
+        // Look for the Run Button by its class or text content
+        const runBtn = document.querySelector(".run-btn"); 
+        if (runBtn) {
+          runBtn.click();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
   };
@@ -41,7 +59,6 @@ function App() {
     }
   };
 
-  // ✅ FIXED: Closing braces added here
   const changeLanguage = (lang) => {
     const updated = [...files];
     if (!updated[activeIndex]) return;
@@ -56,12 +73,12 @@ function App() {
       updated[activeIndex].code = defaultJava;
       updated[activeIndex].name = "Main.java";
     } 
-    else if (lang === "c") { // 🆕 Added C
+    else if (lang === "c") {
       updated[activeIndex].code = defaultC;
       updated[activeIndex].name = "main.c";
     }
     setFiles(updated);
-  }; // <-- Added closing brace for function
+  };
 
   const handleAISuggestion = async () => {
     setMessages([]);
@@ -147,7 +164,7 @@ function App() {
                     } else if (lastFile.language === "java") {
                       resetCode = defaultJava;
                     }
-                    else if (lastFile.language === "c") { // 🆕 Added C
+                    else if (lastFile.language === "c") {
                       resetCode = defaultC;
                     }
                     setFiles([{ 
@@ -178,7 +195,15 @@ function App() {
           <CodeEditor code={activeFile.code} setCode={updateCode} language={activeFile.language} dark={dark} />
 
           <div className="toolbar">
-            <RunButton code={activeFile.code} language={activeFile.language} setOutput={setOutput} isCompiling={isCompiling} setIsCompiling={setIsCompiling} />
+            {/* 🛡️ IMPORTANT: Pass the class "run-btn" to your component */}
+            <RunButton 
+              className="run-btn" 
+              code={activeFile.code} 
+              language={activeFile.language} 
+              setOutput={setOutput} 
+              isCompiling={isCompiling} 
+              setIsCompiling={setIsCompiling} 
+            />
             <button className="ai-btn" onClick={handleAISuggestion}>AI Suggestion</button>
           </div>
         </div>
@@ -229,6 +254,6 @@ function App() {
       </div>
     </div>
   );
-} // ✅ Fixed: Correct closing for function App
+}
 
 export default App;

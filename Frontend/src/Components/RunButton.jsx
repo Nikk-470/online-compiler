@@ -20,7 +20,7 @@ const RunButton = ({ code, language, setOutput, isCompiling, setIsCompiling }) =
 
   return (
     <button 
-      className="run-btn" 
+      className="run-btn" // ✅ This matches the querySelector in App.js
       onClick={handleRun} 
       disabled={isCompiling}
     >
@@ -36,5 +36,4 @@ const RunButton = ({ code, language, setOutput, isCompiling, setIsCompiling }) =
   );
 };
 
-// CRITICAL: This line fixes the "does not provide an export named 'default'" error
 export default RunButton;
